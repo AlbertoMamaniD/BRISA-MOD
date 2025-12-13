@@ -90,7 +90,7 @@
                 apellido_paterno: profesorData.apellido_paterno?.trim(),
                 id_cargo: profesorData.id_cargo
                     ? Number(profesorData.id_cargo)
-                    : null,
+                    : undefined,
                 anos_experiencia: Number(profesorData.anos_experiencia) || 0,
             };
 

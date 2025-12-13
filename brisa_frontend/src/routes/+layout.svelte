@@ -139,6 +139,10 @@
 			sidebarCollapsed = false;
 		}
 	}
+
+	function isItemActive(path: string, itemHref: string): boolean {
+		return path === itemHref && itemHref !== "#";
+	}
 </script>
 
 <svelte:head>
@@ -176,8 +180,7 @@
 					<a
 						href={item.href}
 						class="nav-item"
-						class:active={currentPath === item.href &&
-							item.href !== "#"}
+						class:active={isItemActive(currentPath, item.href)}
 						title={item.label}
 					>
 						<span class="nav-icon"

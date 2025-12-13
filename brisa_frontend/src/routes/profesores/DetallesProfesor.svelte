@@ -13,6 +13,7 @@
 
     let asignaciones: Asignacion[] = [];
     let cargoName = "";
+    let isLoadingCarga = true;
 
     onMount(async () => {
         loadData();
@@ -27,11 +28,16 @@
     });
 
     async function loadData() {
+        isLoadingCarga = true;
         try {
             asignaciones = await profesoresService.getAsignaciones(
                 profesor.id_profesor,
             );
-        } catch {}
+        } catch {
+            asignaciones = [];
+        } finally {
+            isLoadingCarga = false;
+        }
     }
 </script>
 
@@ -125,7 +131,13 @@
             <div class="assignments-section">
                 <h3>Carga Académica Actual</h3>
                 <div class="assignments-list">
-                    {#if asignaciones.length === 0}
+                    {#if isLoadingCarga}
+                        <div class="skeleton-loader">
+                            <div class="skeleton-card"></div>
+                            <div class="skeleton-card"></div>
+                            <div class="skeleton-card"></div>
+                        </div>
+                    {:else if asignaciones.length === 0}
                         <div class="empty">Sin asignaciones registradas.</div>
                     {:else}
                         {#each asignaciones as a}
@@ -305,6 +317,35 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
+    }
+
+    /* Skeleton Loader */
+    .skeleton-loader {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .skeleton-card {
+        height: 50px;
+        background: linear-gradient(
+            90deg,
+            #f0f0f0 25%,
+            #e0e0e0 50%,
+            #f0f0f0 75%
+        );
+        background-size: 200% 100%;
+        border-radius: 8px;
+        animation: loading 1.5s infinite;
+    }
+
+    @keyframes loading {
+        0% {
+            background-position: 200% 0;
+        }
+        100% {
+            background-position: -200% 0;
+        }
     }
 
     .course-badge {

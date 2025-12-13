@@ -171,7 +171,9 @@
                 direccion: profesor.direccion?.trim() || null,
                 telefono: profesor.telefono?.trim() || null,
                 correo: profesor.correo?.trim() || null,
-                id_cargo: profesor.id_cargo ? Number(profesor.id_cargo) : null,
+                id_cargo: profesor.id_cargo
+                    ? Number(profesor.id_cargo)
+                    : undefined,
                 estado_laboral: profesor.estado_laboral || "activo",
                 anos_experiencia: Number(profesor.anos_experiencia) || 0,
                 fecha_ingreso: profesor.fecha_ingreso || null,
