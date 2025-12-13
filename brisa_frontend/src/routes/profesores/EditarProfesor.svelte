@@ -218,10 +218,10 @@
                                 bind:value={profesorData.estado_laboral}
                                 disabled={guardando}
                             >
-                                <option value="Activo">Activo</option>
-                                <option value="Inactivo">Inactivo</option>
-                                <option value="Licencia">Licencia</option>
-                                <option value="Suspendido">Suspendido</option>
+                                <option value="activo">Activo</option>
+                                <option value="retirado">Inactivo</option>
+                                <option value="licencia">Licencia</option>
+                                <option value="suspendido">Suspendido</option>
                             </select>
                         </div>
                     </div>
@@ -315,6 +315,30 @@
                                 bind:value={profesorData.anos_experiencia}
                                 disabled={guardando}
                             />
+                        </div>
+                    </div>
+                    <div class="form-row single">
+                        <div class="form-group">
+                            <label>Fecha de Ingreso</label>
+                            <input
+                                type="date"
+                                bind:value={profesorData.fecha_ingreso}
+                                disabled={guardando}
+                            />
+                        </div>
+                        <div class="form-group">
+                            <label>Cargo</label>
+                            <select
+                                bind:value={profesorData.id_cargo}
+                                disabled={guardando || cargandoCargos}
+                            >
+                                <option value={null}>Sin cargo</option>
+                                {#each cargos as cargo}
+                                    <option value={cargo.id_cargo}
+                                        >{cargo.nombre_cargo}</option
+                                    >
+                                {/each}
+                            </select>
                         </div>
                     </div>
                 </section>

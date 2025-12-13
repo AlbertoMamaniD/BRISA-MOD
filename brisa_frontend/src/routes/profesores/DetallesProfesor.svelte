@@ -55,7 +55,9 @@
                     <span
                         class="status {profesor.estado_laboral?.toLowerCase()}"
                     >
-                        {profesor.estado_laboral}
+                        {profesor.estado_laboral === "retirado"
+                            ? "Inactivo"
+                            : profesor.estado_laboral}
                     </span>
                 </div>
             </div>

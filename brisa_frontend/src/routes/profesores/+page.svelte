@@ -255,9 +255,8 @@
             <div class="filter-group">
                 <select bind:value={estadoSeleccionado}>
                     <option value="todos">Todos los estados</option>
-                    <option value="activo">Activo</option>
-                    <option value="inactivo">Inactivo</option>
-                    <option value="retirado">Retirado</option>
+                    <option value="activos">Activo</option>
+                    <option value="retirado">Inactivo</option>
                     <option value="suspendido">Suspendido</option>
                 </select>
             </div>
@@ -323,7 +322,9 @@
                                             ? 'activo'
                                             : 'inactivo'}"
                                     >
-                                        {p.estado_laboral || "N/A"}
+                                        {p.estado_laboral === "retirado"
+                                            ? "Inactivo"
+                                            : p.estado_laboral || "N/A"}
                                     </span>
                                 </div>
                             </div>
