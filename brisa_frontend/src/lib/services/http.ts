@@ -50,6 +50,10 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 		};
 	}
 
+	if (response.status === 204) {
+		return {} as T;
+	}
+
 	return response.json();
 }
 

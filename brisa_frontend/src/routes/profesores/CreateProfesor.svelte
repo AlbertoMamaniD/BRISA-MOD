@@ -287,10 +287,10 @@
                             bind:value={profesor.estado_laboral}
                             disabled={guardando}
                         >
-                            <option value="activo">Activo</option>
-                            <option value="inactivo">Inactivo</option>
-                            <option value="licencia">Licencia</option>
-                            <option value="suspendido">Suspendido</option>
+                            <option value="Activo">Activo</option>
+                            <option value="Inactivo">Inactivo</option>
+                            <option value="Licencia">Licencia</option>
+                            <option value="Suspendido">Suspendido</option>
                         </select>
                     </div>
                 </div>
