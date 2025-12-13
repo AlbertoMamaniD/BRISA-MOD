@@ -125,8 +125,12 @@ class ProfesorService:
                 persona.telefono = data.telefono
             if data.correo is not None:
                 persona.correo = data.correo
-            if data.id_cargo is not None:
+
+            # Use dict with exclude_unset=True to know what was sent, allowing None for id_cargo
+            update_data = data.dict(exclude_unset=True)
+            if "id_cargo" in update_data:
                 persona.id_cargo = data.id_cargo
+
             if data.estado_laboral is not None:
                 persona.estado_laboral = data.estado_laboral
             if data.anos_experiencia is not None:

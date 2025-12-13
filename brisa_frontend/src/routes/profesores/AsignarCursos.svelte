@@ -12,7 +12,7 @@
 
     const dispatch = createEventDispatcher<{
         close: void;
-        saved: void;
+        saved: any; // payload with assignment details
     }>();
 
     let cursos: any[] = [];
@@ -50,24 +50,22 @@
         }
     });
 
-    async function guardar() {
+    function guardar() {
         if (!selectedCursoId || !selectedMateriaId) return;
-        saving = true;
-        error = "";
-        try {
-            await profesoresService.asignarCursoMateria({
-                id_profesor: profesor.id_profesor,
+
+        const curso = cursos.find((c) => c.id_curso === selectedCursoId);
+        const materia = materias.find(
+            (m) => m.id_materia === selectedMateriaId,
+        );
+
+        if (curso && materia) {
+            dispatch("saved", {
                 id_curso: selectedCursoId,
                 id_materia: selectedMateriaId,
+                nombre_curso: curso.nombre_curso,
+                nombre_materia: materia.nombre_materia,
+                nivel: curso.nivel,
             });
-            dispatch("saved");
-        } catch (e: any) {
-            console.error(e);
-            error =
-                e.message ||
-                "Error al asignar. Verifique que no exista duplicado.";
-        } finally {
-            saving = false;
         }
     }
 </script>
@@ -124,9 +122,9 @@
             <button
                 class="btn-save"
                 on:click={guardar}
-                disabled={saving || !selectedCursoId || !selectedMateriaId}
+                disabled={!selectedCursoId || !selectedMateriaId}
             >
-                {#if saving}Asignando...{:else}Asignar{/if}
+                Asignar
             </button>
         </div>
     </div>

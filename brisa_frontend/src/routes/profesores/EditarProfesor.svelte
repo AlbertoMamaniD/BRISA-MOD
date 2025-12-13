@@ -37,6 +37,9 @@
     };
 
     let asignaciones: Asignacion[] = [];
+    let asignacionesPendientes: any[] = []; // New additions
+    let asignacionesEliminar: Asignacion[] = []; // To be deleted
+
     let cargandoAsignaciones = false;
 
     let cargos: any[] = [];
@@ -90,15 +93,48 @@
                 apellido_paterno: profesorData.apellido_paterno?.trim(),
                 id_cargo: profesorData.id_cargo
                     ? Number(profesorData.id_cargo)
-                    : undefined,
+                    : null,
                 anos_experiencia: Number(profesorData.anos_experiencia) || 0,
             };
 
+            // 1. Update Professor Details
             const saved = await profesoresService.updateProfesor(
                 profesor.id_profesor,
                 data,
             );
-            toastMessage = "Profesor actualizado exitosamente";
+
+            // 2. Process Pending Assignments (Additions)
+            if (asignacionesPendientes.length > 0) {
+                await Promise.all(
+                    asignacionesPendientes.map((a) =>
+                        profesoresService.asignarCursoMateria({
+                            id_profesor: profesor.id_profesor,
+                            id_curso: a.id_curso,
+                            id_materia: a.id_materia,
+                        }),
+                    ),
+                );
+            }
+
+            // 3. Process Pending Deletions
+            if (asignacionesEliminar.length > 0) {
+                await Promise.all(
+                    asignacionesEliminar.map((a) =>
+                        profesoresService.eliminarAsignacion(
+                            profesor.id_profesor,
+                            a.id_curso,
+                            a.id_materia,
+                        ),
+                    ),
+                );
+            }
+
+            // Clear queues
+            asignacionesPendientes = [];
+            asignacionesEliminar = [];
+            await cargarAsignaciones(); // Refresh to be safe
+
+            toastMessage = "Profesor y carga académica actualizados";
             toastType = "success";
             setTimeout(() => {
                 dispatch("save", saved);
@@ -138,30 +174,66 @@
             )
         )
             return;
-        const key = `${items.id_curso}-${items.id_materia}`;
-        eliminandoAsignacion = key;
-        try {
-            await profesoresService.eliminarAsignacion(
-                profesor.id_profesor,
-                items.id_curso,
-                items.id_materia,
-            );
-            await cargarAsignaciones();
-            toastMessage = "Asignación eliminada";
-            toastType = "success";
-        } catch (error: any) {
-            toastMessage = error.message || "Error al eliminar asignación";
-            toastType = "error";
-        } finally {
-            eliminandoAsignacion = null;
+
+        // Remove from UI
+        asignaciones = asignaciones.filter(
+            (a) =>
+                !(
+                    a.id_curso === items.id_curso &&
+                    a.id_materia === items.id_materia
+                ),
+        );
+
+        // Check if it was a pending addition
+        const pendingIdx = asignacionesPendientes.findIndex(
+            (a) =>
+                a.id_curso === items.id_curso &&
+                a.id_materia === items.id_materia,
+        );
+
+        if (pendingIdx >= 0) {
+            // It was new, just remove from pending list
+            asignacionesPendientes.splice(pendingIdx, 1);
+        } else {
+            // It was existing, add to delete queue
+            asignacionesEliminar.push(items);
         }
+
+        toastMessage = "Asignación eliminada (pendiente de guardar)";
+        toastType = "info";
     }
 
-    function handleAsignacionGuardada() {
+    function handleAsignacionGuardada(e: CustomEvent<any>) {
+        const item = e.detail;
+        // Verify duplicates in displayed list (which includes existing + pending)
+        const exists = asignaciones.some(
+            (a) =>
+                a.id_curso === item.id_curso &&
+                a.id_materia === item.id_materia,
+        );
+
+        if (exists) {
+            toastMessage = "Esta asignación ya existe en la lista";
+            toastType = "error";
+            return;
+        }
+
+        // Add to view
+        const newAsignacion: Asignacion = {
+            id_profesor: profesor.id_profesor,
+            id_curso: item.id_curso,
+            id_materia: item.id_materia,
+            nombre_profesor: "",
+            nombre_curso: item.nombre_curso,
+            nombre_materia: item.nombre_materia,
+        };
+
+        asignaciones = [...asignaciones, newAsignacion];
+        asignacionesPendientes.push(newAsignacion);
+
         mostrarModalAsignar = false;
-        cargarAsignaciones();
-        toastMessage = "Carga asignada correctamente";
-        toastType = "success";
+        toastMessage = "Asignación agregada (pendiente de guardar)";
+        toastType = "info";
     }
 </script>
 

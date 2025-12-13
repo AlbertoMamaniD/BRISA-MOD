@@ -22,6 +22,7 @@
     let cargos: Cargo[] = []; // If professors use same cargos table
     let cargoSeleccionado = "todos";
     let estadoSeleccionado = "todos";
+    let materiaSeleccionada = "todas";
     let searchQuery = "";
     let mostrarNuevo = false;
     let mostrarEditar = false;
@@ -194,6 +195,14 @@
     }
 
     // ==================== FILTROS ====================
+    $: materias = [
+        ...new Set(
+            profesores
+                .map((p) => p.especialidad)
+                .filter((e): e is string => !!e),
+        ),
+    ].sort();
+
     $: filtrados = profesores.filter((p) => {
         const q = searchQuery.toLowerCase();
         const okNombre =
@@ -208,7 +217,11 @@
             p.estado_laboral?.toLowerCase() ===
                 estadoSeleccionado.toLowerCase();
 
-        return (okNombre || okCI || okEsp) && okEstadoSelect;
+        const okMateriaSelect =
+            materiaSeleccionada === "todas" ||
+            p.especialidad === materiaSeleccionada;
+
+        return (okNombre || okCI || okEsp) && okEstadoSelect && okMateriaSelect;
     });
 </script>
 
@@ -253,6 +266,12 @@
                 bind:value={searchQuery}
             />
             <div class="filter-group">
+                <select bind:value={materiaSeleccionada}>
+                    <option value="todas">Todas las materias</option>
+                    {#each materias as m}
+                        <option value={m}>{m}</option>
+                    {/each}
+                </select>
                 <select bind:value={estadoSeleccionado}>
                     <option value="todos">Todos los estados</option>
                     <option value="activos">Activo</option>
@@ -390,12 +409,13 @@
         gap: 16px;
         margin-bottom: 28px;
         align-items: center;
-        flex-wrap: wrap;
+        /* Removed flex-wrap to keep single line */
     }
 
     .filters input {
         flex: 1;
-        min-width: 280px;
+        flex: 1;
+        min-width: 150px;
         padding: 12px 18px;
         border: 1px solid #e2e8f0;
         border-radius: 10px;
