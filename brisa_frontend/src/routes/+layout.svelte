@@ -140,8 +140,8 @@
 		}
 	}
 
-	function isItemActive(path: string, itemHref: string): boolean {
-		return path === itemHref && itemHref !== "#";
+	function isItemActive(href: string): boolean {
+		return currentPath === href;
 	}
 </script>
 
@@ -180,7 +180,7 @@
 					<a
 						href={item.href}
 						class="nav-item"
-						class:active={isItemActive(currentPath, item.href)}
+						class:active={isItemActive(item.href)}
 						title={item.label}
 					>
 						<span class="nav-icon"
@@ -271,6 +271,7 @@
 					onclick={handleLogout}
 					title="Cerrar Sesión"
 				>
+					>
 					<span class="nav-icon">{@html getIconSvg("log-out")}</span>
 					{#if !sidebarCollapsed}
 						<span class="nav-label">Cerrar Sesión</span>
@@ -281,7 +282,7 @@
 
 		<div class="main-content-wrapper">
 			<header class="top-bar">
-				<div class="search-bar"></div>
+				<div></div>
 				<div class="top-bar-actions">
 					<button class="action-btn notification-btn">
 						{@html getIconSvg("bell")}

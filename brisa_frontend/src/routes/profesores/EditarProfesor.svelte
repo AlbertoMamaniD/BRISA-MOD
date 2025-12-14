@@ -95,6 +95,7 @@
                     ? Number(profesorData.id_cargo)
                     : null,
                 anos_experiencia: Number(profesorData.anos_experiencia) || 0,
+                direccion: profesorData.direccion?.trim() || null,
             };
 
             // 1. Update Professor Details
@@ -241,7 +242,9 @@
     <div class="editar-profesor">
         <div class="header">
             <div class="icon-title">
-                <div class="icon">✏️</div>
+                <div class="icon">
+                    {@html getIconSvg("edit")}
+                </div>
                 <div>
                     <h2>Editar Profesor</h2>
                     <p>{profesor.nombres} {profesor.apellido_paterno}</p>
@@ -339,6 +342,17 @@
                             <input
                                 type="tel"
                                 bind:value={profesorData.telefono}
+                                disabled={guardando}
+                            />
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Dirección</label>
+                            <input
+                                type="text"
+                                bind:value={profesorData.direccion}
+                                placeholder="Ej: Av. Principal #123"
                                 disabled={guardando}
                             />
                         </div>
@@ -478,13 +492,15 @@
 <style>
     .editar-profesor-container {
         background: #f8fafc;
-        padding: 20px;
+        padding: 0 20px 20px 20px;
+        margin-top: 20px;
     }
 
     .editar-profesor {
         background: #fff;
         border-radius: 12px;
-        padding: 24px;
+        /* Padding removed from here */
+        padding: 0;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
         max-width: 1100px;
         margin: 0 auto;
@@ -494,9 +510,15 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 24px;
         border-bottom: 1px solid #e2e8f0;
-        padding-bottom: 16px;
+        position: sticky;
+        top: 0;
+        background: white;
+        z-index: 20;
+        padding: 20px 24px;
+        margin: 0;
+        border-radius: 12px 12px 0 0;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     }
 
     .icon-title {
@@ -513,7 +535,12 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 20px;
+        color: #00cfe6;
+    }
+
+    .icon :global(svg) {
+        width: 20px;
+        height: 20px;
     }
 
     h2 {
@@ -531,6 +558,8 @@
         display: grid;
         grid-template-columns: 2fr 1fr;
         gap: 24px;
+        /* Padding added here */
+        padding: 24px;
     }
 
     @media (max-width: 800px) {
@@ -569,11 +598,11 @@
     }
     .form-group {
         display: flex;
-        flexdirection: column;
+        flex-direction: column;
     }
     label {
         margin-bottom: 6px;
-        fontsize: 0.85rem;
+        font-size: 0.85rem;
         color: #475569;
     }
     input,

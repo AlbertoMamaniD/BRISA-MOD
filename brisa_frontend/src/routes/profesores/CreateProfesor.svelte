@@ -5,7 +5,10 @@
         profesoresService,
         type Profesor,
     } from "$lib/services/profesores.js";
-    import { administrativosService } from "$lib/services/administrativos.js"; // For cargos
+    import { administrativosService } from "$lib/services/administrativos.js";
+    import { coursesService } from "$lib/services/courses.js";
+    import { academicService } from "$lib/services/academic.js";
+    import { getIconSvg } from "$lib/components/svg.js";
 
     const dispatch = createEventDispatcher<{
         save: Profesor;
@@ -48,13 +51,36 @@
 
     let cargos: any[] = [];
     let cargandoCargos = false;
+
+    // Asignaciones
+    let cursos: any[] = [];
+    let materias: any[] = [];
+    let asignaciones: any[] = []; // { id_curso, id_materia, nombre_curso, nombre_materia }
+    let selectedCursoId: number | null = null;
+    let selectedMateriaId: number | null = null;
+
     let guardando = false;
     let toastMessage = "";
     let toastType: "success" | "error" | "info" = "info";
 
     onMount(async () => {
-        await cargarCargos();
+        await Promise.all([cargarCargos(), cargarDatosAcademicos()]);
     });
+
+    async function cargarDatosAcademicos() {
+        try {
+            const [coursesRes, subjectsRes] = await Promise.all([
+                coursesService.getCourses(),
+                academicService.getReporteMateriasPorNivel(),
+            ]);
+            cursos = Array.isArray(coursesRes)
+                ? coursesRes
+                : coursesRes.data || [];
+            materias = subjectsRes.materias || [];
+        } catch (e) {
+            console.error("Error cargando datos académicos", e);
+        }
+    }
 
     async function cargarCargos() {
         cargandoCargos = true;
@@ -189,6 +215,12 @@
 
             toastMessage = "Profesor registrado exitosamente";
             toastType = "success";
+
+            // Guardar asignaciones si existen
+            if (saved && saved.id_profesor) {
+                await guardarAsignaciones(saved.id_profesor);
+            }
+
             setTimeout(() => {
                 dispatch("save", saved);
                 resetForm();
@@ -203,6 +235,32 @@
             toastType = "error";
         } finally {
             guardando = false;
+        }
+    }
+
+    async function guardarAsignaciones(idProfesor: number) {
+        if (asignaciones.length === 0) return;
+
+        let errores = 0;
+        for (const asig of asignaciones) {
+            try {
+                await profesoresService.asignarCursoMateria({
+                    id_profesor: idProfesor,
+                    id_curso: asig.id_curso,
+                    id_materia: asig.id_materia,
+                });
+            } catch (e) {
+                console.error("Error asignando carga", e);
+                errores++;
+            }
+        }
+
+        if (errores > 0) {
+            toastMessage = `Profesor creado, pero hubo ${errores} error(es) al asignar carga.`;
+            toastType = "info";
+        } else {
+            toastMessage =
+                "Profesor y carga académica registrados correctamente";
         }
     }
 
@@ -229,6 +287,49 @@
             nivel_enseñanza: "todos",
             observaciones: "",
         };
+        asignaciones = [];
+        selectedCursoId = null;
+        selectedMateriaId = null;
+    }
+
+    function agregarAsignacion() {
+        if (!selectedCursoId || !selectedMateriaId) return;
+
+        // Verificar duplicados
+        const exists = asignaciones.some(
+            (a) =>
+                a.id_curso === selectedCursoId &&
+                a.id_materia === selectedMateriaId,
+        );
+        if (exists) {
+            toastMessage = "Esta asignación ya está en la lista";
+            toastType = "error";
+            return;
+        }
+
+        const curso = cursos.find((c) => c.id_curso === selectedCursoId);
+        const materia = materias.find(
+            (m) => m.id_materia === selectedMateriaId,
+        );
+
+        if (curso && materia) {
+            asignaciones = [
+                ...asignaciones,
+                {
+                    id_curso: selectedCursoId,
+                    id_materia: selectedMateriaId,
+                    nombre_curso: curso.nombre_curso,
+                    nombre_materia: materia.nombre_materia,
+                    nivel_curso: curso.nivel,
+                },
+            ];
+            selectedCursoId = null;
+            selectedMateriaId = null;
+        }
+    }
+
+    function removerAsignacion(index: number) {
+        asignaciones = asignaciones.filter((_, i) => i !== index);
     }
 </script>
 
@@ -236,7 +337,9 @@
     <div class="nuevo-profesor">
         <div class="header">
             <div class="icon-title">
-                <div class="icon">👨‍🏫</div>
+                <div class="icon">
+                    {@html getIconSvg("graduation-cap")}
+                </div>
                 <div>
                     <h2>Nuevo Profesor</h2>
                     <p>Complete los datos del personal docente</p>
@@ -490,6 +593,79 @@
                     </div>
                 </div>
             </section>
+
+            <!-- Asignación de Carga Académica -->
+            <section>
+                <h3>Asignación de Carga Académica (Opcional)</h3>
+                <div class="form-row single assignment-row">
+                    <div class="form-group">
+                        <label>Curso</label>
+                        <select
+                            bind:value={selectedCursoId}
+                            disabled={guardando}
+                        >
+                            <option value={null}>-- Seleccionar Curso --</option
+                            >
+                            {#each cursos as c}
+                                <option value={c.id_curso}
+                                    >{c.nombre_curso} ({c.nivel})</option
+                                >
+                            {/each}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Materia</label>
+                        <select
+                            bind:value={selectedMateriaId}
+                            disabled={guardando}
+                        >
+                            <option value={null}
+                                >-- Seleccionar Materia --</option
+                            >
+                            {#each materias as m}
+                                <option value={m.id_materia}
+                                    >{m.nombre_materia} ({m.nivel})</option
+                                >
+                            {/each}
+                        </select>
+                    </div>
+                    <div class="form-group btn-add-container">
+                        <label>&nbsp;</label>
+                        <button
+                            class="btn-add"
+                            on:click={agregarAsignacion}
+                            disabled={guardando ||
+                                !selectedCursoId ||
+                                !selectedMateriaId}
+                        >
+                            + Agregar
+                        </button>
+                    </div>
+                </div>
+
+                {#if asignaciones.length > 0}
+                    <div class="assignment-list">
+                        <h4>Asignaciones agregadas:</h4>
+                        <div class="list-container">
+                            {#each asignaciones as asig, i}
+                                <div class="assignment-item">
+                                    <span class="asig-text">
+                                        <strong>{asig.nombre_materia}</strong>
+                                        en {asig.nombre_curso}
+                                    </span>
+                                    <button
+                                        class="btn-remove"
+                                        on:click={() => removerAsignacion(i)}
+                                        disabled={guardando}
+                                    >
+                                        &times;
+                                    </button>
+                                </div>
+                            {/each}
+                        </div>
+                    </div>
+                {/if}
+            </section>
         </div>
     </div>
 </div>
@@ -499,13 +675,15 @@
 <style>
     .nuevo-profesor-container {
         background: #f8fafc;
-        padding: 20px;
+        padding: 0 20px 20px 20px;
+        margin-top: 20px;
     }
 
     .nuevo-profesor {
         background: #fff;
         border-radius: 12px;
-        padding: 24px;
+        /* Padding removed from here */
+        padding: 0;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
         max-width: 900px;
         margin: 0 auto;
@@ -516,19 +694,23 @@
         display: flex;
         flex-direction: column;
         gap: 20px;
+        /* Padding added here */
+        padding: 24px;
     }
 
     .header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 20px;
         border-bottom: 1px solid #e2e8f0;
-        padding-bottom: 12px;
         position: sticky;
         top: 0;
         background: white;
-        z-index: 10;
+        z-index: 20;
+        padding: 20px 24px;
+        margin: 0;
+        border-radius: 12px 12px 0 0;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     }
 
     .icon-title {
@@ -545,7 +727,12 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 20px;
+        color: #00cfe6;
+    }
+
+    .icon :global(svg) {
+        width: 20px;
+        height: 20px;
     }
 
     h2 {
@@ -687,5 +874,99 @@
         100% {
             transform: rotate(360deg);
         }
+    }
+
+    /* Asignaciones Styles */
+    .assignment-row {
+        display: grid;
+        grid-template-columns: 2fr 2fr 1fr;
+        gap: 12px;
+        align-items: center;
+    }
+
+    .btn-add-container {
+        display: flex;
+        justify-content: center;
+        align-items: flex-end;
+        height: 100%;
+    }
+
+    .btn-add {
+        background: #00cfe6;
+        color: white;
+        border: none;
+        padding: 10px 16px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 500;
+        height: 42px; /* Match input height */
+        width: 100%;
+        transition: all 0.2s;
+        box-shadow:
+            0 4px 6px -1px rgba(0, 0, 0, 0.1),
+            0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+
+    .btn-add:hover:not(:disabled) {
+        background: #00b8d4;
+        transform: translateY(-1px);
+    }
+
+    .btn-add:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        box-shadow: none;
+    }
+
+    .assignment-list {
+        margin-top: 20px;
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 16px;
+    }
+
+    .assignment-list h4 {
+        margin: 0 0 12px;
+        font-size: 0.9rem;
+        color: #475569;
+    }
+
+    .list-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .assignment-item {
+        background: #f1f5f9;
+        padding: 6px 12px;
+        border-radius: 99px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.85rem;
+        color: #334155;
+        border: 1px solid #e2e8f0;
+    }
+
+    .btn-remove {
+        background: #fee2e2;
+        color: #ef4444;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        border: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        cursor: pointer;
+        line-height: 1;
+        padding: 0;
+    }
+
+    .btn-remove:hover {
+        background: #fecaca;
     }
 </style>

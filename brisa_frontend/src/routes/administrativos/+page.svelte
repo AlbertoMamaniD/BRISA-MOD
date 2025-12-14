@@ -1,9 +1,13 @@
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
-	import { administrativosService, type Administrativo, type Cargo } from '$lib/services/administrativos.js';
-	import { getIconSvg } from '$lib/components/svg.js';
-	import NuevoAdministrativo from './NuevoAdministrativo.svelte';
-	import EditarAdministrativos from './EditarAdministrativos.svelte';
+	import { onMount, onDestroy } from "svelte";
+	import {
+		administrativosService,
+		type Administrativo,
+		type Cargo,
+	} from "$lib/services/administrativos.js";
+	import { getIconSvg } from "$lib/components/svg.js";
+	import NuevoAdministrativo from "./NuevoAdministrativo.svelte";
+	import EditarAdministrativos from "./EditarAdministrativos.svelte";
 
 	const POLLING_INTERVAL = 5000;
 	const FAST_POLLING_INTERVAL = 2000;
@@ -11,9 +15,9 @@
 	// ==================== ESTADO ====================
 	let administrativos: Administrativo[] = [];
 	let cargos: Cargo[] = [];
-	let cargoSeleccionado = 'todos';
-	let estadoSeleccionado = 'todos';
-	let searchQuery = '';
+	let cargoSeleccionado = "todos";
+	let estadoSeleccionado = "todos";
+	let searchQuery = "";
 	let mostrarNuevo = false;
 	let mostrarEditar = false;
 	let administrativoEditando: Administrativo | null = null;
@@ -26,24 +30,26 @@
 	// ==================== UTILIDADES ====================
 	function hash(data: any) {
 		return JSON.stringify(data)
-			.split('')
+			.split("")
 			.reduce((a, b) => (a = (a << 5) - a + b.charCodeAt(0)) & a, 0)
 			.toString();
 	}
 
 	function initials(a: Administrativo) {
-		const ap = a.apellido_paterno?.[0] || a.apellido_materno?.[0] || '';
-		const n = a.nombres.split(' ')[0]?.[0] || '';
-		return (ap + n).toUpperCase() || '?';
+		const ap = a.apellido_paterno?.[0] || a.apellido_materno?.[0] || "";
+		const n = a.nombres.split(" ")[0]?.[0] || "";
+		return (ap + n).toUpperCase() || "?";
 	}
 
 	function fullName(a: Administrativo) {
-		const ape = a.apellido_paterno || a.apellido_materno || '';
-		return `${ape} ${a.nombres}`.trim() || a.nombre_completo || 'Sin nombre';
+		const ape = a.apellido_paterno || a.apellido_materno || "";
+		return (
+			`${ape} ${a.nombres}`.trim() || a.nombre_completo || "Sin nombre"
+		);
 	}
 
 	// ==================== CARGA DATOS ====================
-	let lastHash = '';
+	let lastHash = "";
 
 	async function cargarAdministrativos(silent = false) {
 		if (!silent) {
@@ -53,7 +59,8 @@
 			if (timeoutCarga) clearTimeout(timeoutCarga);
 			timeoutCarga = setTimeout(() => {
 				if (isLoading) {
-					errorCargando = 'No se ha podido cargar los administrativos';
+					errorCargando =
+						"No se ha podido cargar los administrativos";
 					isLoading = false;
 				}
 			}, 10000) as any;
@@ -71,7 +78,7 @@
 			errorCargando = null;
 		} catch (err: any) {
 			if (!silent) {
-				errorCargando = 'No se ha podido cargar los administrativos';
+				errorCargando = "No se ha podido cargar los administrativos";
 				isLoading = false;
 			}
 		} finally {
@@ -121,10 +128,10 @@
 		refrescar();
 		pollingStart();
 		const vis = () => !document.hidden && refrescar(true);
-		document.addEventListener('visibilitychange', vis);
+		document.addEventListener("visibilitychange", vis);
 		onDestroy(() => {
 			pollingStop();
-			document.removeEventListener('visibilitychange', vis);
+			document.removeEventListener("visibilitychange", vis);
 		});
 	});
 
@@ -146,7 +153,7 @@
 	async function onSave(e: CustomEvent<Administrativo>) {
 		const saved = e.detail;
 		const idx = administrativos.findIndex(
-			(a) => (a.id ?? a.id_persona) === (saved.id ?? saved.id_persona)
+			(a) => (a.id ?? a.id_persona) === (saved.id ?? saved.id_persona),
 		);
 		if (idx >= 0) administrativos[idx] = saved;
 		else administrativos = [...administrativos, saved];
@@ -157,7 +164,9 @@
 	}
 
 	function onDelete(e: CustomEvent<{ id: number }>) {
-		administrativos = administrativos.filter((a) => (a.id ?? a.id_persona) !== e.detail.id);
+		administrativos = administrativos.filter(
+			(a) => (a.id ?? a.id_persona) !== e.detail.id,
+		);
 		cerrarForms();
 		refrescar(true);
 	}
@@ -173,11 +182,17 @@
 		const okCargo = a.nombre_cargo?.toLowerCase().includes(q) ?? false;
 		const okArea = a.area_trabajo?.toLowerCase().includes(q) ?? false;
 		const okCargoSelect =
-			cargoSeleccionado === 'todos' || a.id_cargo?.toString() === cargoSeleccionado;
+			cargoSeleccionado === "todos" ||
+			a.id_cargo?.toString() === cargoSeleccionado;
 		const okEstadoSelect =
-			estadoSeleccionado === 'todos' ||
-			a.estado_laboral?.toLowerCase() === estadoSeleccionado.toLowerCase();
-		return (okNombre || okCI || okCargo || okArea) && okCargoSelect && okEstadoSelect;
+			estadoSeleccionado === "todos" ||
+			a.estado_laboral?.toLowerCase() ===
+				estadoSeleccionado.toLowerCase();
+		return (
+			(okNombre || okCI || okCargo || okArea) &&
+			okCargoSelect &&
+			okEstadoSelect
+		);
 	});
 </script>
 
@@ -200,7 +215,9 @@
 
 		<!-- BOTÓN A LA DERECHA (DEBAJO DEL TÍTULO) -->
 		<div class="button-row">
-			<button class="btn-nuevo" on:click={abrirNuevo}>+ Nuevo Administrativo</button>
+			<button class="btn-nuevo" on:click={abrirNuevo}
+				>+ Nuevo Administrativo</button
+			>
 		</div>
 
 		<!-- FILTROS -->
@@ -214,7 +231,9 @@
 				<select bind:value={cargoSeleccionado}>
 					<option value="todos">Todos los cargos</option>
 					{#each cargos as cargo}
-						<option value={cargo.id_cargo.toString()}>{cargo.nombre_cargo}</option>
+						<option value={cargo.id_cargo.toString()}
+							>{cargo.nombre_cargo}</option
+						>
 					{/each}
 				</select>
 				<select bind:value={estadoSeleccionado}>
@@ -236,10 +255,10 @@
 				</div>
 			{:else if errorCargando}
 				<div class="error-state">
-					{@html getIconSvg('alert-circle')}
+					{@html getIconSvg("alert-circle")}
 					<p>{errorCargando}</p>
 					<button class="btn-reintentar" on:click={reintentarCarga}>
-						{@html getIconSvg('refresh-cw')}
+						{@html getIconSvg("refresh-cw")}
 						Reintentar
 					</button>
 				</div>
@@ -250,7 +269,14 @@
 			{:else}
 				<div class="grid" class:updating={hasChanges}>
 					{#each filtrados as a (a.id ?? a.id_persona ?? Math.random())}
-						<div class="card" on:click={() => abrirEditar(a)}>
+						<div
+							class="card"
+							role="button"
+							tabindex="0"
+							on:click={() => abrirEditar(a)}
+							on:keydown={(e) =>
+								e.key === "Enter" && abrirEditar(a)}
+						>
 							<div class="avatar-circle">{initials(a)}</div>
 
 							<div class="info">
@@ -258,28 +284,34 @@
 									<h3>{fullName(a)}</h3>
 
 									{#if a.nombre_cargo}
-										<span class="cargo-pill">{a.nombre_cargo}</span>
+										<span class="cargo-pill"
+											>{a.nombre_cargo}</span
+										>
 									{/if}
 								</div>
 
 								{#if a.area_trabajo}
 									<div class="area-row">
-										<span class="area-tag">{a.area_trabajo}</span>
+										<span class="area-tag"
+											>{a.area_trabajo}</span
+										>
 									</div>
 								{/if}
 
 								<div class="footer">
 									<div class="horas">
-										{@html getIconSvg('clock')}
-										<span>{a.horas_semana ?? 40} h/sem</span>
+										{@html getIconSvg("clock")}
+										<span>{a.horas_semana ?? 40} h/sem</span
+										>
 									</div>
 
 									<span
-										class="estado {a.estado_laboral?.toLowerCase() === 'activo'
+										class="estado {a.estado_laboral?.toLowerCase() ===
+										'activo'
 											? 'activo'
 											: 'inactivo'}"
 									>
-										{a.estado_laboral || 'N/A'}
+										{a.estado_laboral || "N/A"}
 									</span>
 								</div>
 							</div>
@@ -345,12 +377,12 @@
 		gap: 16px;
 		margin-bottom: 28px;
 		align-items: center;
-		flex-wrap: wrap;
+		flex-wrap: nowrap; /* Enforce single line */
 	}
 
 	.filters input {
 		flex: 1;
-		min-width: 280px;
+		min-width: 200px;
 		padding: 12px 18px;
 		border: 1px solid #e2e8f0;
 		border-radius: 10px;
@@ -368,6 +400,9 @@
 		display: flex;
 		gap: 12px;
 		align-items: center;
+		flex-direction: row; /* FORCE ROW */
+		flex-wrap: nowrap; /* Enforce single line */
+		flex-shrink: 0; /* Prevent shrinking */
 	}
 
 	.filter-group select {
@@ -434,7 +469,7 @@
 		gap: 16px;
 	}
 
-	.error-state svg {
+	.error-state :global(svg) {
 		width: 48px;
 		height: 48px;
 		color: #ef4444;
@@ -467,7 +502,7 @@
 		transform: translateY(-1px);
 	}
 
-	.btn-reintentar svg {
+	.btn-reintentar :global(svg) {
 		width: 16px;
 		height: 16px;
 	}
@@ -583,7 +618,7 @@
 		font-size: 0.85rem;
 	}
 
-	.horas svg {
+	.horas :global(svg) {
 		width: 14px;
 		height: 14px;
 	}
@@ -613,4 +648,3 @@
 		border: 1px solid #eef6fa;
 	}
 </style>
-

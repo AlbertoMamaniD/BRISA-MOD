@@ -18,6 +18,7 @@ export type Profesor = {
     titulo_academico?: string;
     nivel_enseñanza?: string;
     observaciones?: string;
+    asignaciones?: Asignacion[];
 };
 
 export type ProfesorCreate = {
@@ -55,24 +56,56 @@ export type AsignarCursoMateria = {
     id_materia: number;
 };
 
+const assignmentCache = new Map<number, Asignacion[]>();
+let professorsCache: Profesor[] | null = null;
+
 export const profesoresService = {
-    getProfesores: async (): Promise<Profesor[]> => http.get('/profesores'),
+    getProfesores: async (forceRefresh = false): Promise<Profesor[]> => {
+        if (!forceRefresh && professorsCache) return professorsCache;
+        const data = await http.get('/profesores') as Profesor[];
+        professorsCache = data;
+        return data;
+    },
 
     getProfesor: async (id: number): Promise<Profesor> => http.get(`/profesores/${id}`),
 
-    createProfesor: async (data: ProfesorCreate): Promise<Profesor> => http.post('/profesores', data),
+    createProfesor: async (data: ProfesorCreate): Promise<Profesor> => {
+        const res = await http.post('/profesores', data) as Profesor;
+        professorsCache = null;
+        return res;
+    },
 
-    updateProfesor: async (id: number, data: ProfesorUpdate): Promise<Profesor> =>
-        http.put(`/profesores/${id}`, data),
+    updateProfesor: async (id: number, data: ProfesorUpdate): Promise<Profesor> => {
+        const res = await http.put(`/profesores/${id}`, data) as Profesor;
+        professorsCache = null;
+        return res;
+    },
 
-    deleteProfesor: async (id: number): Promise<void> => http.del(`/profesores/${id}`),
+    deleteProfesor: async (id: number): Promise<void> => {
+        await http.del(`/profesores/${id}`);
+        professorsCache = null;
+        assignmentCache.delete(id);
+    },
 
     // Asignaciones
-    getAsignaciones: async (id_profesor: number): Promise<Asignacion[]> =>
-        http.get(`/profesores/${id_profesor}/asignaciones`),
+    getAsignaciones: async (id_profesor: number): Promise<Asignacion[]> => {
+        if (assignmentCache.has(id_profesor)) {
+            return assignmentCache.get(id_profesor)!;
+        }
+        const data = await http.get(`/profesores/${id_profesor}/asignaciones`) as Asignacion[];
+        assignmentCache.set(id_profesor, data);
+        return data;
+    },
 
-    asignarCursoMateria: async (data: AsignarCursoMateria): Promise<Asignacion> =>
-        http.post('/profesores/asignar-curso-materia', data),
+    clearAssignmentCache: () => {
+        assignmentCache.clear();
+    },
+
+    asignarCursoMateria: async (data: AsignarCursoMateria): Promise<Asignacion> => {
+        const res = await http.post('/profesores/asignar-curso-materia', data) as Asignacion;
+        assignmentCache.delete(data.id_profesor);
+        return res;
+    },
 
     eliminarAsignacion: async (
         id_profesor: number,
@@ -80,5 +113,6 @@ export const profesoresService = {
         id_materia: number
     ): Promise<void> => {
         await http.del(`/profesores/${id_profesor}/asignaciones/${id_curso}/${id_materia}`);
+        assignmentCache.delete(id_profesor);
     }
 };
