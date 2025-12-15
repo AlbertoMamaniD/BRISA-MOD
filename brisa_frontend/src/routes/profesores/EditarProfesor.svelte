@@ -619,7 +619,7 @@
         align-items: center;
         border-bottom: 1px solid #e2e8f0;
         position: sticky;
-        top: 0;
+        top: 64px; /* Matches .top-bar height */
         background: white;
         z-index: 100;
         padding: 20px 24px;
@@ -627,6 +627,11 @@
         /* Removed top border radius to look better when stuck */
         border-radius: 12px 12px 0 0;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    /* FIX: Override parent overflow to allow sticky to work with body scroll */
+    :global(.content-area) {
+        overflow: visible !important;
     }
 
     .icon-title {
