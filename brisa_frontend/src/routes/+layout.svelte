@@ -27,7 +27,8 @@
 		{ label: "Usuarios y Roles", icon: "users", href: "#" },
 		{ label: "Estudiantes", icon: "graduation-cap", href: "#" },
 		{ label: "Profesores", icon: "user", href: "/profesores" },
-		{ label: "Cursos", icon: "book-open", href: "#" },
+		{ label: "Cursos", icon: "book-open", href: "/profesores/cursos" },
+		{ label: "Materias", icon: "book", href: "/profesores/materias" },
 		{
 			label: "Administrativos",
 			icon: "briefcase",

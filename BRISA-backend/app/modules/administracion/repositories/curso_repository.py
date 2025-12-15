@@ -15,6 +15,38 @@ class CursoRepository:
         return db.query(Curso).order_by(Curso.nombre_curso).all()
 
     @staticmethod
+    def create(db: Session, curso_dto):
+        db_curso = Curso(
+            nombre_curso=curso_dto.nombre_curso,
+            nivel=curso_dto.nivel,
+            gestion=curso_dto.gestion
+        )
+        db.add(db_curso)
+        db.commit()
+        db.refresh(db_curso)
+        return db_curso
+
+    @staticmethod
+    def update(db: Session, curso_id: int, curso_dto):
+        db_curso = db.query(Curso).filter(Curso.id_curso == curso_id).first()
+        if db_curso:
+            db_curso.nombre_curso = curso_dto.nombre_curso
+            db_curso.nivel = curso_dto.nivel
+            db_curso.gestion = curso_dto.gestion
+            db.commit()
+            db.refresh(db_curso)
+        return db_curso
+
+    @staticmethod
+    def delete(db: Session, curso_id: int):
+        db_curso = db.query(Curso).filter(Curso.id_curso == curso_id).first()
+        if db_curso:
+            db.delete(db_curso)
+            db.commit()
+            return True
+        return False
+
+    @staticmethod
     def get_by_profesor(db: Session, id_profesor: int):
         """Obtiene los cursos asignados a un profesor específico (usa `profesores.id_profesor`)."""
         rows = db.execute(

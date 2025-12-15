@@ -1,16 +1,21 @@
-# app/modules/administracion/dto/curso_dto.py
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional
 
+class CursoBaseDTO(BaseModel):
+    nombre_curso: str = Field(..., min_length=1, max_length=50)
+    nivel: str = Field(..., min_length=1, max_length=50)
+    gestion: str = Field(..., min_length=4, max_length=20)
 
-class CursoDTO(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-    
+class CursoCreateDTO(CursoBaseDTO):
+    pass
+
+class CursoUpdateDTO(CursoBaseDTO):
+    pass
+
+class CursoDTO(CursoBaseDTO):
     id_curso: int
-    nombre_curso: str
-    nivel: str
-    gestion: str
-
+    
+    model_config = ConfigDict(from_attributes=True)
 
 class EstudianteDTO(BaseModel):
     model_config = ConfigDict(from_attributes=True)

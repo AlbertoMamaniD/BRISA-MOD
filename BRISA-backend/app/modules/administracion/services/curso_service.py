@@ -3,6 +3,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from app.modules.administracion.repositories.curso_repository import CursoRepository
+from app.modules.administracion.dto.curso_dto import CursoCreateDTO, CursoUpdateDTO
 from typing import Optional
 
 
@@ -20,6 +21,24 @@ class CursoService:
         if not curso:
             raise HTTPException(status_code=404, detail="Curso no encontrado")
         return curso
+
+    @staticmethod
+    def crear_curso(db: Session, curso_dto: CursoCreateDTO):
+        return CursoRepository.create(db, curso_dto)
+
+    @staticmethod
+    def actualizar_curso(db: Session, curso_id: int, curso_dto: CursoUpdateDTO):
+        curso = CursoRepository.get_by_id(db, curso_id)
+        if not curso:
+            raise HTTPException(status_code=404, detail="Curso no encontrado")
+        return CursoRepository.update(db, curso_id, curso_dto)
+
+    @staticmethod
+    def eliminar_curso(db: Session, curso_id: int):
+        curso = CursoRepository.get_by_id(db, curso_id)
+        if not curso:
+            raise HTTPException(status_code=404, detail="Curso no encontrado")
+        return CursoRepository.delete(db, curso_id)
 
     @staticmethod
     def listar_cursos_por_profesor(db: Session, id_persona: int):

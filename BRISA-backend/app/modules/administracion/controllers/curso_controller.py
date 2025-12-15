@@ -10,6 +10,8 @@ from app.core.database import get_db
 from app.modules.administracion.services.curso_service import CursoService
 from app.modules.administracion.dto.curso_dto import (
     CursoDTO,
+    CursoCreateDTO,
+    CursoUpdateDTO,
     EstudianteListResponseDTO,
     ProfesorListResponseDTO
 )
@@ -19,6 +21,44 @@ from app.shared.permission_mapper import puede_ver_todas_esquelas
 
 
 router = APIRouter(prefix="/courses", tags=["Courses"])
+
+
+@router.post("/", response_model=CursoDTO, status_code=status.HTTP_201_CREATED)
+def crear_curso(
+    curso: CursoCreateDTO,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user_dependency)
+):
+    """
+    Crea un nuevo curso.
+    Requiere rol de administrador o regente.
+    """
+    # TODO: Validar rol explícitamente si es necesario
+    return CursoService.crear_curso(db, curso)
+
+@router.put("/{curso_id}", response_model=CursoDTO)
+def actualizar_curso(
+    curso_id: int,
+    curso: CursoUpdateDTO,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user_dependency)
+):
+    """
+    Actualiza un curso existente.
+    """
+    return CursoService.actualizar_curso(db, curso_id, curso)
+
+@router.delete("/{curso_id}", status_code=status.HTTP_204_NO_CONTENT)
+def eliminar_curso(
+    curso_id: int,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user_dependency)
+):
+    """
+    Elimina un curso.
+    Las asignaciones a profesores se eliminarán automáticamente (Cascade Delete).
+    """
+    CursoService.eliminar_curso(db, curso_id)
 
 
 @router.get("/", response_model=List[CursoDTO])

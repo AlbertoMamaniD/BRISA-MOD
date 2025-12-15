@@ -4,7 +4,6 @@ import { authService } from './auth';
 export const coursesService = {
 	getCourses: async () => {
 		let id_persona = authService.getUserData()?.id_persona;
-		// Refresca datos de usuario si no están en localStorage
 		if (!id_persona) {
 			const user = await authService.getCurrentUser();
 			id_persona = user?.id_persona;
@@ -13,6 +12,9 @@ export const coursesService = {
 	},
 	getCourseTeachersList: async (id: number) => http.get<any>(`/courses/mis_cursos/${id}`),
 	getCourse: async (id: number) => http.get<any>(`/courses/${id}`),
+	createCourse: async (data: any) => http.post<any>('/courses/', data),
+	updateCourse: async (id: number, data: any) => http.put<any>(`/courses/${id}`, data),
+	deleteCourse: async (id: number) => http.del(`/courses/${id}`),
 	getCourseStudents: async (courseId: number, params?: Record<string, any>) => http.get<any>(`/courses/${courseId}/students/${http.buildQuery(params)}`),
 	getCourseTeachers: async (courseId: number, params?: Record<string, any>) => http.get<any>(`/courses/${courseId}/teachers/${http.buildQuery(params)}`)
 };

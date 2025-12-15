@@ -9,6 +9,8 @@
     import { administrativosService } from "$lib/services/administrativos.js";
     import { getIconSvg } from "$lib/components/svg.js";
     import AsignarCursos from "./AsignarCursos.svelte";
+    import { fade, scale } from "svelte/transition";
+    import { quintOut } from "svelte/easing";
 
     export let profesor: Profesor;
 
@@ -53,6 +55,7 @@
     let toastType: "success" | "error" | "info" = "info";
 
     let mostrarModalAsignar = false;
+    let mostrarModalEliminar = false;
 
     onMount(async () => {
         if (profesor) {
@@ -150,19 +153,23 @@
     }
 
     async function eliminarProfesor() {
-        if (!confirm("¿Está seguro de eliminar este profesor permanently?"))
-            return;
+        mostrarModalEliminar = true;
+    }
+
+    async function confirmarEliminacion() {
         eliminando = true;
         try {
             await profesoresService.deleteProfesor(profesor.id_profesor);
             toastMessage = "Profesor eliminado";
             toastType = "success";
+            mostrarModalEliminar = false;
             setTimeout(() => {
                 dispatch("delete", { id: profesor.id_profesor });
             }, 1000);
         } catch (error: any) {
             toastMessage = error.message || "Error al eliminar";
             toastType = "error";
+            mostrarModalEliminar = false;
         } finally {
             eliminando = false;
         }
@@ -487,6 +494,55 @@
     />
 {/if}
 
+{#if mostrarModalEliminar}
+    <div class="modal-backdrop" transition:fade={{ duration: 200 }}>
+        <div
+            class="modal-content confirm-modal"
+            transition:scale={{
+                duration: 250,
+                opacity: 0.9,
+                start: 0.95,
+                easing: quintOut,
+            }}
+        >
+            <div class="modal-body confirm-content">
+                <div class="warning-icon">
+                    {@html getIconSvg("alert-triangle")}
+                </div>
+                <h2>¿Eliminar profesor?</h2>
+                <p class="warning-text">
+                    Estás a punto de eliminar a <strong
+                        >{profesor.nombres} {profesor.apellido_paterno}</strong
+                    >. Esta acción no se puede deshacer.
+                </p>
+
+                <div class="form-actions split">
+                    <button
+                        class="btn-secondary"
+                        on:click={() => (mostrarModalEliminar = false)}
+                        disabled={eliminando}
+                    >
+                        Cancelar
+                    </button>
+                    <button
+                        class="btn-danger"
+                        on:click={confirmarEliminacion}
+                        disabled={eliminando}
+                    >
+                        {#if eliminando}
+                            <span class="spinner-sm"></span>
+                            <span>Eliminando...</span>
+                        {:else}
+                            {@html getIconSvg("trash")}
+                            Eliminar definitivamente
+                        {/if}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+{/if}
+
 <Toast message={toastMessage} type={toastType} />
 
 <style>
@@ -695,5 +751,117 @@
         border-radius: 8px;
         border: none;
         cursor: pointer;
+    }
+
+    /* ==================== MODAL STYLES ==================== */
+    .modal-backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(15, 23, 42, 0.6);
+        backdrop-filter: blur(4px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        padding: 20px;
+    }
+    .modal-content.confirm-modal {
+        background: white;
+        border-radius: 24px;
+        width: 100%;
+        max-width: 420px;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        border: 1px solid rgba(255, 255, 255, 0.8);
+    }
+    .modal-body.confirm-content {
+        padding: 40px 32px;
+        text-align: center;
+    }
+    .warning-icon {
+        color: #ef4444;
+        margin-bottom: 24px;
+        background: #fef2f2;
+        width: 80px;
+        height: 80px;
+        border-radius: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    .warning-icon :global(svg) {
+        width: 40px;
+        height: 40px;
+    }
+    .modal-body h2 {
+        font-size: 1.5rem;
+        color: #1e293b;
+        margin: 0 0 12px 0;
+        font-weight: 700;
+    }
+    .warning-text {
+        color: #64748b;
+        font-size: 1rem;
+        line-height: 1.5;
+        margin-bottom: 32px;
+    }
+    .form-actions.split {
+        display: flex;
+        justify-content: center;
+        gap: 16px;
+    }
+    .btn-secondary {
+        background: white;
+        color: #64748b;
+        border: 1px solid #e2e8f0;
+        padding: 12px 24px;
+        border-radius: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        font-size: 1rem;
+        transition: all 0.2s;
+    }
+    .btn-secondary:hover {
+        background: #f1f5f9;
+        color: #1e293b;
+    }
+    .btn-danger {
+        background: #ef4444;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 1rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
+        transition: all 0.2s;
+    }
+    .btn-danger:hover {
+        background: #dc2626;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(239, 68, 68, 0.35);
+    }
+    .btn-danger:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+        transform: none;
+    }
+    .spinner-sm {
+        width: 18px;
+        height: 18px;
+        box-sizing: border-box;
+        border: 2px solid #ffffff;
+        border-top: 2px solid transparent;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        display: block;
     }
 </style>
