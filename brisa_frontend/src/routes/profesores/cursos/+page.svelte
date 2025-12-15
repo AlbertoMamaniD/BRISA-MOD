@@ -116,6 +116,15 @@
             }
         }
     }
+
+    function getBadgeClass(nivel: string) {
+        if (!nivel) return "badge-gray";
+        const n = nivel.toLowerCase().trim();
+        if (n.includes("inicial")) return "badge-green";
+        if (n.includes("primaria")) return "badge-yellow";
+        if (n.includes("secundaria")) return "badge-blue";
+        return "badge-purple";
+    }
 </script>
 
 {#if isLoading}
@@ -183,15 +192,31 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {#each filtrados as c}
-                            <tr on:click={() => abrirEditar(c)}>
-                                <td class="font-medium">{c.nombre_curso}</td>
-                                <td>
-                                    <span class="badge badge-purple">
-                                        {c.nivel}
+                        {#each filtrados as c (c.id_curso)}
+                            {@const nivelTexto = normalizeNivel(c.nivel)}
+                            {@const badgeClass = getBadgeClass(c.nivel)}
+                            <tr>
+                                <td
+                                    class="font-medium"
+                                    on:click={() => abrirEditar(c)}
+                                >
+                                    {c.nombre_curso}
+                                </td>
+                                <td
+                                    on:click={() => abrirEditar(c)}
+                                    style="min-width: 100px;"
+                                >
+                                    {nivelTexto}
+                                    <span
+                                        class="badge {badgeClass}"
+                                        style="margin-left: 8px;"
+                                    >
+                                        {nivelTexto}
                                     </span>
                                 </td>
-                                <td>{c.gestion}</td>
+                                <td on:click={() => abrirEditar(c)}
+                                    >{c.gestion}</td
+                                >
                                 <td class="actions-col">
                                     <button
                                         class="icon-btn"
@@ -336,7 +361,6 @@
 <Toast message={toastMessage} type={toastType} />
 
 <style>
-    /* ==================== GLOBAL STYLES (Previously common.css) ==================== */
     :root {
         --cyan: #00cfe6;
         --cyan-dark: #00b3c7;
@@ -351,7 +375,6 @@
         --warning: #f59e0b;
     }
 
-    /* ==================== PANEL ==================== */
     .panel {
         background: var(--bg-white);
         border-radius: 14px;
@@ -361,7 +384,6 @@
         margin-bottom: 2rem;
     }
 
-    /* ==================== TITLE SECTION ==================== */
     .title-section {
         margin-bottom: 24px;
     }
@@ -398,7 +420,6 @@
         font-size: 0.95rem;
     }
 
-    /* ==================== BUTTONS ==================== */
     .btn-primary {
         background: var(--cyan);
         color: white;
@@ -441,9 +462,10 @@
         color: var(--text-secondary);
         cursor: pointer;
         transition: all 0.2s;
-        display: flex;
+        display: inline-flex;
         align-items: center;
         justify-content: center;
+        margin: 0 2px;
     }
     .icon-btn:hover {
         background: var(--bg-light);
@@ -466,59 +488,107 @@
         overflow-x: auto;
         border-radius: 10px;
         border: 1px solid var(--border-color);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        min-height: 100px;
     }
     .data-table {
         width: 100%;
         border-collapse: collapse;
         font-size: 0.95rem;
+        table-layout: fixed;
     }
     .data-table th {
         text-align: left;
-        padding: 14px 20px;
+        padding: 16px 24px;
         background: #f8fafc;
         color: var(--text-secondary);
         font-weight: 600;
         font-size: 0.85rem;
         text-transform: uppercase;
+        letter-spacing: 0.05em;
         border-bottom: 1px solid var(--border-color);
     }
     .data-table td {
-        padding: 14px 20px;
+        padding: 16px 24px;
         border-bottom: 1px solid var(--border-color);
         color: var(--text);
         vertical-align: middle;
     }
     .data-table tbody tr:hover {
-        background: #f1f5f9;
+        background: #f8fafc;
         cursor: pointer;
     }
     .font-medium {
-        font-weight: 500;
+        font-weight: 600;
         color: var(--text);
     }
-    .actions-col {
-        display: flex;
-        justify-content: flex-end;
-        align-items: center;
-        gap: 8px;
-        min-width: 100px;
+
+    /* Column Width Distribution */
+    /* Column Width Distribution */
+    .data-table th:nth-child(1),
+    .data-table td:nth-child(1) {
+        width: 40%;
+    }
+
+    .data-table th:nth-child(2),
+    .data-table td:nth-child(2) {
+        width: 30%;
+    }
+
+    .data-table th:nth-child(3),
+    .data-table td:nth-child(3) {
+        width: 15%;
+    }
+
+    .data-table th.actions-col,
+    .data-table td.actions-col {
+        width: 15%;
+        text-align: right;
+        white-space: nowrap;
     }
 
     /* ==================== BADGES ==================== */
     .badge {
-        padding: 4px 10px;
-        border-radius: 999px;
+        padding: 6px 12px;
+        border-radius: 8px;
         font-size: 0.75rem;
         font-weight: 600;
-        display: inline-block;
+        letter-spacing: 0.025em;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--bg-light);
+        color: var(--text-secondary);
+        min-width: 90px;
+        text-transform: capitalize;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
     }
     .badge-blue {
-        background: #eff6ff;
-        color: #3b82f6;
+        background: #e0f2fe !important;
+        color: #0369a1 !important;
+        border: 1px solid #bae6fd;
     }
-    /* Note: .badge-purple is already local in Cursos */
+    .badge-green {
+        background: #dcfce7 !important;
+        color: #15803d !important;
+        border: 1px solid #bbf7d0;
+    }
+    .badge-yellow {
+        background: #fef9c3 !important;
+        color: #a16207 !important;
+        border: 1px solid #fde047;
+    }
+    .badge-gray {
+        background: #f1f5f9 !important;
+        color: #475569 !important;
+        border: 1px solid #e2e8f0;
+    }
+    .badge-purple {
+        background: #f3e8ff !important;
+        color: #7e22ce !important;
+        border: 1px solid #e9d5ff;
+    }
 
-    /* ==================== STATES ==================== */
     .loading-state,
     .empty-state {
         padding: 60px 20px;
@@ -526,7 +596,6 @@
         color: var(--text-secondary);
     }
 
-    /* ==================== MODAL ==================== */
     .modal-backdrop {
         position: fixed;
         top: 0;
@@ -588,7 +657,6 @@
         overflow-y: auto;
     }
 
-    /* ==================== FILTERS & LAYOUT (Local) ==================== */
     .button-row {
         display: flex;
         justify-content: flex-end;
@@ -674,11 +742,6 @@
         height: 16px;
     }
 
-    .badge-purple {
-        background-color: rgba(139, 92, 246, 0.1);
-        color: #8b5cf6;
-    }
-
     .confirm-content {
         text-align: center;
         padding: 1rem;
@@ -686,6 +749,9 @@
     .warning-icon {
         color: var(--warning);
         margin-bottom: 1rem;
+        display: flex;
+        justify-content: center;
+        align-items: center;
     }
     .warning-icon :global(svg) {
         width: 48px;
@@ -736,5 +802,11 @@
         border-radius: 50%;
         animation: spin 1s linear infinite;
         display: inline-block;
+    }
+
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
     }
 </style>

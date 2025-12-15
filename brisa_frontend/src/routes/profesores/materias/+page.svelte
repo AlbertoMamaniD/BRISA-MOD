@@ -10,6 +10,7 @@
     import Toast from "$lib/components/Toast.svelte";
 
     let materias: Materia[] = [];
+    let filtradas: Materia[] = [];
     let searchQuery = "";
     let selectedNivel = "";
     let niveles: string[] = [];
@@ -21,9 +22,33 @@
     let isLoading = true;
     let isDeleting = false;
 
-    // Toast State
     let toastMessage = "";
     let toastType: "success" | "error" | "info" = "info";
+
+    function getBadgeClass(nivel: any) {
+        if (!nivel) return "badge-gray";
+        const n = String(nivel).toLowerCase().trim();
+        if (n.includes("inicial")) return "badge-green";
+        if (n.includes("primaria")) return "badge-yellow";
+        if (n.includes("secundaria")) return "badge-blue";
+        return "badge-gray";
+    }
+
+    const normalizeNivel = (n: any) => {
+        if (!n || n === "" || n === null || n === undefined) {
+            return "Sin nivel";
+        }
+        const s = String(n).trim();
+        if (
+            !s ||
+            s === "" ||
+            s.toLowerCase() === "null" ||
+            s.toLowerCase() === "undefined"
+        ) {
+            return "Sin nivel";
+        }
+        return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+    };
 
     async function cargarMaterias() {
         try {
@@ -31,6 +56,8 @@
             materias = await materiasService.getMaterias();
         } catch (error) {
             console.error("Error cargando materias:", error);
+            toastMessage = "Error al cargar materias";
+            toastType = "error";
         } finally {
             isLoading = false;
         }
@@ -39,11 +66,6 @@
     onMount(() => {
         cargarMaterias();
     });
-
-    const normalizeNivel = (n: string) => {
-        if (!n) return "";
-        return n.charAt(0).toUpperCase() + n.slice(1).toLowerCase();
-    };
 
     $: niveles = [
         ...new Set(
@@ -107,7 +129,7 @@
                     materiaAEliminar.id_materia,
                 );
                 await cargarMaterias();
-                cerrarForms(); // Now correctly closes everything
+                cerrarForms();
                 toastMessage = "Materia eliminada correctamente";
                 toastType = "success";
             } catch (error) {
@@ -139,7 +161,6 @@
             </div>
         </div>
 
-        <!-- BUTTONS ROW -->
         <div class="button-row">
             <button class="btn-primary" on:click={abrirNuevo}>
                 {@html getIconSvg("plus")}
@@ -147,7 +168,6 @@
             </button>
         </div>
 
-        <!-- FILTERS ROW -->
         <div class="filters">
             <input
                 type="text"
@@ -179,21 +199,37 @@
                 <table class="data-table">
                     <thead>
                         <tr>
-                            <th>Nombre</th>
-                            <th>Nivel</th>
-                            <th class="actions-col">Acciones</th>
+                            <th class="col-nombre">Nombre</th>
+                            <th class="col-nivel">Nivel</th>
+                            <th class="col-acciones">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {#each filtradas as m}
-                            <tr on:click={() => abrirEditar(m)}>
-                                <td class="font-medium">{m.nombre_materia}</td>
-                                <td>
-                                    <span class="badge badge-blue">
-                                        {m.nivel}
+                        {#each filtradas as m (m.id_materia)}
+                            {@const nivelTexto = normalizeNivel(m.nivel)}
+                            {@const badgeClass = getBadgeClass(m.nivel)}
+                            <tr>
+                                <td
+                                    class="col-nombre"
+                                    on:click={() => abrirEditar(m)}
+                                >
+                                    <span class="font-medium"
+                                        >{m.nombre_materia}</span
+                                    >
+                                </td>
+                                <td
+                                    class="col-nivel"
+                                    on:click={() => abrirEditar(m)}
+                                >
+                                    {nivelTexto}
+                                    <span
+                                        class="badge {badgeClass}"
+                                        style="margin-left: 8px;"
+                                    >
+                                        {nivelTexto}
                                     </span>
                                 </td>
-                                <td class="actions-col">
+                                <td class="col-acciones">
                                     <button
                                         class="icon-btn"
                                         title="Editar"
@@ -337,7 +373,6 @@
 <Toast message={toastMessage} type={toastType} />
 
 <style>
-    /* ==================== GLOBAL STYLES (Previously common.css) ==================== */
     :root {
         --cyan: #00cfe6;
         --cyan-dark: #00b3c7;
@@ -352,7 +387,6 @@
         --warning: #f59e0b;
     }
 
-    /* ==================== PANEL ==================== */
     .panel {
         background: var(--bg-white);
         border-radius: 14px;
@@ -362,7 +396,6 @@
         margin-bottom: 2rem;
     }
 
-    /* ==================== TITLE SECTION ==================== */
     .title-section {
         margin-bottom: 24px;
     }
@@ -399,7 +432,6 @@
         font-size: 0.95rem;
     }
 
-    /* ==================== BUTTONS ==================== */
     .btn-primary {
         background: var(--cyan);
         color: white;
@@ -442,9 +474,10 @@
         color: var(--text-secondary);
         cursor: pointer;
         transition: all 0.2s;
-        display: flex;
+        display: inline-flex;
         align-items: center;
         justify-content: center;
+        margin: 0 2px;
     }
     .icon-btn:hover {
         background: var(--bg-light);
@@ -462,7 +495,6 @@
         height: 18px;
     }
 
-    /* ==================== DATA TABLE ==================== */
     .table-container {
         overflow-x: auto;
         border-radius: 10px;
@@ -472,6 +504,7 @@
         width: 100%;
         border-collapse: collapse;
         font-size: 0.95rem;
+        table-layout: fixed;
     }
     .data-table th {
         text-align: left;
@@ -493,32 +526,53 @@
         background: #f1f5f9;
         cursor: pointer;
     }
+
+    /* Column widths */
+    .col-nombre {
+        width: 45%;
+    }
+    .col-nivel {
+        width: 40%;
+    }
+    .col-acciones {
+        width: 15%;
+        text-align: right;
+        white-space: nowrap;
+    }
+
     .font-medium {
         font-weight: 500;
         color: var(--text);
     }
-    .actions-col {
-        display: flex;
-        justify-content: flex-end;
-        align-items: center;
-        gap: 8px;
-        min-width: 100px;
-    }
 
-    /* ==================== BADGES ==================== */
     .badge {
-        padding: 4px 10px;
+        padding: 6px 12px;
         border-radius: 999px;
-        font-size: 0.75rem;
+        font-size: 0.8rem;
         font-weight: 600;
         display: inline-block;
+        background: #f1f5f9;
+        color: #64748b;
+        min-width: 80px;
+        text-align: center;
     }
     .badge-blue {
-        background: #eff6ff;
-        color: #3b82f6;
+        background: #eff6ff !important;
+        color: #3b82f6 !important;
+    }
+    .badge-green {
+        background: #dcfce7 !important;
+        color: #166534 !important;
+    }
+    .badge-yellow {
+        background: #fef3c7 !important;
+        color: #92400e !important;
+    }
+    .badge-gray {
+        background: #f1f5f9 !important;
+        color: #64748b !important;
     }
 
-    /* ==================== STATES ==================== */
     .loading-state,
     .empty-state {
         padding: 60px 20px;
@@ -526,7 +580,6 @@
         color: var(--text-secondary);
     }
 
-    /* ==================== MODAL ==================== */
     .modal-backdrop {
         position: fixed;
         top: 0;
@@ -588,7 +641,6 @@
         overflow-y: auto;
     }
 
-    /* ==================== FILTERS & LAYOUT (Local) ==================== */
     .button-row {
         display: flex;
         justify-content: flex-end;
@@ -681,6 +733,9 @@
     .warning-icon {
         color: var(--warning);
         margin-bottom: 1rem;
+        display: flex;
+        justify-content: center;
+        align-items: center;
     }
     .warning-icon :global(svg) {
         width: 48px;
@@ -731,5 +786,11 @@
         border-radius: 50%;
         animation: spin 1s linear infinite;
         display: inline-block;
+    }
+
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
     }
 </style>
