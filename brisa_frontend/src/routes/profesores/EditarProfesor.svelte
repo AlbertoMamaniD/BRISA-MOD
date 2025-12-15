@@ -56,6 +56,8 @@
 
     let mostrarModalAsignar = false;
     let mostrarModalEliminar = false;
+    let mostrarModalEliminarAsignacion = false;
+    let asignacionAEliminar: Asignacion | null = null;
 
     onMount(async () => {
         if (profesor) {
@@ -175,13 +177,15 @@
         }
     }
 
-    async function eliminarAsignacion(items: Asignacion) {
-        if (
-            !confirm(
-                `¿Quitar asignación de ${items.nombre_materia} en ${items.nombre_curso}?`,
-            )
-        )
-            return;
+    function confirmarEliminarAsignacion(items: Asignacion) {
+        asignacionAEliminar = items;
+        mostrarModalEliminarAsignacion = true;
+    }
+
+    async function eliminarAsignacion() {
+        if (!asignacionAEliminar) return;
+
+        const items = asignacionAEliminar;
 
         // Remove from UI
         asignaciones = asignaciones.filter(
@@ -209,6 +213,8 @@
 
         toastMessage = "Asignación eliminada (pendiente de guardar)";
         toastType = "info";
+        mostrarModalEliminarAsignacion = false;
+        asignacionAEliminar = null;
     }
 
     function handleAsignacionGuardada(e: CustomEvent<any>) {
@@ -472,7 +478,8 @@
                                         class="btn-icon-delete"
                                         disabled={eliminandoAsignacion ===
                                             `${a.id_curso}-${a.id_materia}`}
-                                        on:click={() => eliminarAsignacion(a)}
+                                        on:click={() =>
+                                            confirmarEliminarAsignacion(a)}
                                     >
                                         {@html getIconSvg("trash")}
                                     </button>
@@ -543,6 +550,50 @@
     </div>
 {/if}
 
+{#if mostrarModalEliminarAsignacion && asignacionAEliminar}
+    <div class="modal-backdrop" transition:fade={{ duration: 200 }}>
+        <div
+            class="modal-content confirm-modal"
+            transition:scale={{
+                duration: 250,
+                opacity: 0.9,
+                start: 0.95,
+                easing: quintOut,
+            }}
+        >
+            <div class="modal-body confirm-content">
+                <div class="warning-icon delete-assignment">
+                    {@html getIconSvg("trash-2")}
+                </div>
+                <h2>¿Quitar asignación?</h2>
+                <p class="warning-text">
+                    Estás a punto de quitar la asignación de <strong
+                        >{asignacionAEliminar.nombre_materia}</strong
+                    >
+                    en <strong>{asignacionAEliminar.nombre_curso}</strong>. Esta
+                    acción quedará pendiente hasta que guardes los cambios.
+                </p>
+
+                <div class="form-actions split">
+                    <button
+                        class="btn-secondary"
+                        on:click={() => {
+                            mostrarModalEliminarAsignacion = false;
+                            asignacionAEliminar = null;
+                        }}
+                    >
+                        Cancelar
+                    </button>
+                    <button class="btn-danger" on:click={eliminarAsignacion}>
+                        {@html getIconSvg("trash")}
+                        Quitar asignación
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+{/if}
+
 <Toast message={toastMessage} type={toastType} />
 
 <style>
@@ -570,9 +621,10 @@
         position: sticky;
         top: 0;
         background: white;
-        z-index: 20;
+        z-index: 100;
         padding: 20px 24px;
         margin: 0;
+        /* Removed top border radius to look better when stuck */
         border-radius: 12px 12px 0 0;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     }
@@ -681,10 +733,18 @@
         background: #00cfe6;
         color: white;
         border: none;
-        border-radius: 6px;
-        padding: 6px 12px;
-        font-size: 0.8rem;
+        border-radius: 8px;
+        padding: 10px 18px;
+        font-size: 0.95rem;
+        font-weight: 600;
         cursor: pointer;
+        transition: all 0.2s;
+        box-shadow: 0 2px 8px rgba(0, 207, 230, 0.25);
+    }
+    .btn-small-primary:hover {
+        background: #00b8d4;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 207, 230, 0.35);
     }
 
     .assignment-item {
@@ -796,6 +856,10 @@
     .warning-icon :global(svg) {
         width: 40px;
         height: 40px;
+    }
+    .warning-icon.delete-assignment {
+        background: #fff7ed;
+        color: #f59e0b;
     }
     .modal-body h2 {
         font-size: 1.5rem;

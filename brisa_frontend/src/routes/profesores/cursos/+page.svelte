@@ -219,12 +219,12 @@
                                 >
                                 <td class="actions-col">
                                     <button
-                                        class="icon-btn"
+                                        class="icon-btn edit-btn"
                                         title="Editar"
                                         on:click|stopPropagation={() =>
                                             abrirEditar(c)}
                                     >
-                                        {@html getIconSvg("edit-2")}
+                                        {@html getIconSvg("edit")}
                                     </button>
                                     <button
                                         class="icon-btn delete-btn"
@@ -232,7 +232,7 @@
                                         on:click|stopPropagation={() =>
                                             confirmDelete(c)}
                                     >
-                                        {@html getIconSvg("trash-2")}
+                                        {@html getIconSvg("trash")}
                                     </button>
                                 </td>
                             </tr>
@@ -416,8 +416,24 @@
     }
     .title-section p {
         color: var(--text-secondary);
-        margin: 0;
-        font-size: 0.95rem;
+        color: #64748b;
+        font-style: italic;
+    }
+
+    /* ==================== ACTION ICONS COLORS ==================== */
+    .icon-btn.edit-btn {
+        color: #00cfe6;
+    }
+    .icon-btn.edit-btn:hover {
+        background: #e0f7fa;
+        color: #00a6b8;
+    }
+    .icon-btn.delete-btn {
+        color: #ef4444;
+    }
+    .icon-btn.delete-btn:hover {
+        background: #fee2e2;
+        color: #dc2626;
     }
 
     .btn-primary {

@@ -1,6 +1,7 @@
 <script lang="ts">
     import { onMount, onDestroy } from "svelte";
     import { text } from "@sveltejs/kit";
+    import { goto } from "$app/navigation";
     import {
         profesoresService,
         type Profesor,
@@ -35,6 +36,14 @@
     let polling: number | null = null;
     let isMounted = false;
     let fileInput: HTMLInputElement;
+
+    // Modal states para importación
+    let mostrarModalConfirmImport = false;
+    let mostrarModalImportResult = false;
+    let mostrarModalImportError = false;
+    let archivoAImportar: File | null = null;
+    let importResultMessage = "";
+    let importErrorMessage = "";
 
     // ==================== UTILIDADES ====================
     function hash(data: any) {
@@ -288,13 +297,22 @@
         // Reset input immediately so same file can be selected again if needed
         target.value = "";
 
-        if (
-            confirm(
-                `¿Deseas importar el archivo "${file.name}"? Se intentarán crear nuevos profesores.`,
-            )
-        ) {
-            await procesarImportacion(file);
+        // Guardar archivo y mostrar modal de confirmación
+        archivoAImportar = file;
+        mostrarModalConfirmImport = true;
+    }
+
+    async function confirmarImportacion() {
+        mostrarModalConfirmImport = false;
+        if (archivoAImportar) {
+            await procesarImportacion(archivoAImportar);
+            archivoAImportar = null;
         }
+    }
+
+    function cancelarImportacion() {
+        mostrarModalConfirmImport = false;
+        archivoAImportar = null;
     }
 
     async function procesarImportacion(file: File) {
@@ -326,9 +344,9 @@
                 .split(/\r?\n/)
                 .filter((l) => l.trim().length > 0);
             if (lines.length < 2) {
-                alert(
-                    "El archivo CSV parece estar vacío o no tiene formato válido.",
-                );
+                importErrorMessage =
+                    "El archivo CSV parece estar vacío o no tiene formato válido.";
+                mostrarModalImportError = true;
                 return;
             }
 
@@ -372,9 +390,9 @@
                 mapIdx.paterno === -1 ||
                 mapIdx.ci === -1
             ) {
-                alert(
-                    "El CSV debe tener al menos columnas para CI, Nombres y Apellido Paterno.",
-                );
+                importErrorMessage =
+                    "El CSV debe tener al menos columnas para CI, Nombres y Apellido Paterno.";
+                mostrarModalImportError = true;
                 return;
             }
 
@@ -562,13 +580,14 @@
             }
 
             // Summary
-            let msg = `Proceso completado.\n\nProfesores creados: ${createdCount}\nErrores: ${errors.length}`;
+            let msg = `**Proceso completado**\n\nProfesores creados: ${createdCount}\nErrores: ${errors.length}`;
             if (errors.length > 0) {
-                msg += `\n\nDetalles:\n${errors.slice(0, 10).join("\n")}`;
+                msg += `\n\n**Detalles de errores:**\n${errors.slice(0, 10).join("\n")}`;
                 if (errors.length > 10)
                     msg += `\n... y ${errors.length - 10} más.`;
             }
-            alert(msg);
+            importResultMessage = msg;
+            mostrarModalImportResult = true;
 
             // Refresh
             if (createdCount > 0) {
@@ -577,7 +596,9 @@
             }
         } catch (err) {
             console.error("Critical import error", err);
-            alert("Ocurrió un error crítico al procesar el archivo.");
+            importErrorMessage =
+                "Ocurrió un error crítico al procesar el archivo.";
+            mostrarModalImportError = true;
         } finally {
             isImporting = false;
         }
@@ -944,6 +965,161 @@
                     {/each}
                 </div>
             {/if}
+        </div>
+    </div>
+{/if}
+
+<!-- MODAL: Confirmar Importación -->
+{#if mostrarModalConfirmImport && archivoAImportar}
+    <div
+        class="modal-backdrop"
+        on:click={cancelarImportacion}
+        role="button"
+        tabindex="0"
+        on:keydown={(e) => e.key === "Escape" && cancelarImportacion()}
+    >
+        <div
+            class="modal-content modal-confirm"
+            on:click|stopPropagation
+            role="dialog"
+            aria-labelledby="modal-confirm-title"
+        >
+            <div class="modal-header">
+                <h3 id="modal-confirm-title">Confirmar Importación</h3>
+                <button class="close-btn" on:click={cancelarImportacion}>
+                    {@html getIconSvg("x")}
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="confirm-icon">
+                    {@html getIconSvg("upload")}
+                </div>
+                <p class="confirm-text">
+                    ¿Deseas importar el archivo <strong
+                        >"{archivoAImportar.name}"</strong
+                    >?
+                </p>
+                <p class="confirm-subtext">
+                    Se intentarán crear nuevos profesores basándose en los datos
+                    del archivo CSV.
+                </p>
+            </div>
+            <div class="modal-actions">
+                <button
+                    class="btn-secondary"
+                    on:click={cancelarImportacion}
+                    disabled={isImporting}
+                >
+                    Cancelar
+                </button>
+                <button
+                    class="btn-primary"
+                    on:click={confirmarImportacion}
+                    disabled={isImporting}
+                >
+                    {#if isImporting}
+                        <span class="spinner-sm"></span> Importando...
+                    {:else}
+                        {@html getIconSvg("check")} Importar
+                    {/if}
+                </button>
+            </div>
+        </div>
+    </div>
+{/if}
+
+<!-- MODAL: Resultado de Importación -->
+{#if mostrarModalImportResult}
+    <div
+        class="modal-backdrop"
+        on:click={() => (mostrarModalImportResult = false)}
+        role="button"
+        tabindex="0"
+        on:keydown={(e) =>
+            e.key === "Escape" && (mostrarModalImportResult = false)}
+    >
+        <div
+            class="modal-content modal-result"
+            on:click|stopPropagation
+            role="dialog"
+            aria-labelledby="modal-result-title"
+        >
+            <div class="modal-header">
+                <h3 id="modal-result-title">Resultado de la Importación</h3>
+                <button
+                    class="close-btn"
+                    on:click={() => (mostrarModalImportResult = false)}
+                >
+                    {@html getIconSvg("x")}
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="result-icon success">
+                    {@html getIconSvg("check-circle")}
+                </div>
+                <div class="result-message">
+                    {#each importResultMessage.split("\n") as line}
+                        {#if line.startsWith("**")}
+                            <p class="result-title">
+                                {line.replace(/\*\*/g, "")}
+                            </p>
+                        {:else}
+                            <p>{line}</p>
+                        {/if}
+                    {/each}
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button
+                    class="btn-primary"
+                    on:click={() => (mostrarModalImportResult = false)}
+                >
+                    Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+{/if}
+
+<!-- MODAL: Error de Importación -->
+{#if mostrarModalImportError}
+    <div
+        class="modal-backdrop"
+        on:click={() => (mostrarModalImportError = false)}
+        role="button"
+        tabindex="0"
+        on:keydown={(e) =>
+            e.key === "Escape" && (mostrarModalImportError = false)}
+    >
+        <div
+            class="modal-content modal-error"
+            on:click|stopPropagation
+            role="dialog"
+            aria-labelledby="modal-error-title"
+        >
+            <div class="modal-header">
+                <h3 id="modal-error-title">Error en la Importación</h3>
+                <button
+                    class="close-btn"
+                    on:click={() => (mostrarModalImportError = false)}
+                >
+                    {@html getIconSvg("x")}
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="result-icon error">
+                    {@html getIconSvg("alert-circle")}
+                </div>
+                <p class="error-text">{importErrorMessage}</p>
+            </div>
+            <div class="modal-actions">
+                <button
+                    class="btn-secondary"
+                    on:click={() => (mostrarModalImportError = false)}
+                >
+                    Cerrar
+                </button>
+            </div>
         </div>
     </div>
 {/if}
@@ -1354,7 +1530,215 @@
 
     .no-data-text {
         font-size: 0.8rem;
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    /* ==================== MODAL STYLES ==================== */
+    .modal-backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(15, 23, 42, 0.7);
+        backdrop-filter: blur(4px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        padding: 20px;
+    }
+
+    .modal-content {
+        background: white;
+        border-radius: 16px;
+        width: 100%;
+        max-width: 500px;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+        animation: modalFadeIn 0.3s ease;
+    }
+
+    @keyframes modalFadeIn {
+        from {
+            opacity: 0;
+            transform: scale(0.95) translateY(-20px);
+        }
+        to {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+        }
+    }
+
+    .modal-header {
+        padding: 20px 24px;
+        border-bottom: 1px solid #e2e8f0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .modal-header h3 {
+        margin: 0;
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1e293b;
+    }
+
+    .close-btn {
+        background: none;
+        border: none;
         color: #94a3b8;
-        font-style: italic;
+        cursor: pointer;
+        padding: 4px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+    }
+
+    .close-btn:hover {
+        background: #f1f5f9;
+        color: #ef4444;
+    }
+
+    .close-btn :global(svg) {
+        width: 20px;
+        height: 20px;
+    }
+
+    .modal-body {
+        padding: 24px;
+        text-align: center;
+    }
+
+    .confirm-icon,
+    .result-icon {
+        width: 64px;
+        height: 64px;
+        margin: 0 auto 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+    }
+
+    .confirm-icon {
+        background: linear-gradient(135deg, #00cfe6, #00a6b8);
+        color: white;
+    }
+
+    .result-icon.success {
+        background: #dcfce7;
+        color: #15803d;
+    }
+
+    .result-icon.error {
+        background: #fef2f2;
+        color: #ef4444;
+    }
+
+    .confirm-icon :global(svg),
+    .result-icon :global(svg) {
+        width: 32px;
+        height: 32px;
+    }
+
+    .confirm-text {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #1e293b;
+        margin: 0 0 8px;
+    }
+
+    .confirm-subtext {
+        font-size: 0.95rem;
+        color: #64748b;
+        margin: 0;
+    }
+
+    .error-text {
+        font-size: 1rem;
+        color: #1e293b;
+        margin: 8px 0 0;
+    }
+
+    .result-message {
+        margin-top: 16px;
+        text-align: left;
+    }
+
+    .result-message p {
+        margin: 6px 0;
+        font-size: 0.95rem;
+        color: #475569;
+        line-height: 1.6;
+    }
+
+    .result-title {
+        font-weight: 700;
+        font-size: 1.05rem !important;
+        color: #1e293b !important;
+        margin: 12px 0 8px !important;
+    }
+
+    .modal-actions {
+        padding: 20px 24px;
+        border-top: 1px solid #e2e8f0;
+        display: flex;
+        justify-content: center;
+        gap: 12px;
+    }
+
+    .modal-actions button {
+        padding: 10px 24px;
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 0.95rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .modal-actions .btn-secondary {
+        background: white;
+        border: 1px solid #e2e8f0;
+        color: #64748b;
+    }
+
+    .modal-actions .btn-secondary:hover {
+        background: #f1f5f9;
+        color: #1e293b;
+    }
+
+    .modal-actions .btn-primary {
+        background: var(--cyan);
+        border: none;
+        color: white;
+        box-shadow: 0 4px 10px rgba(0, 207, 230, 0.2);
+    }
+
+    .modal-actions .btn-primary:hover {
+        background: #00b3c7;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0, 207, 230, 0.3);
+    }
+
+    .spinner-sm {
+        width: 16px;
+        height: 16px;
+        border: 2px solid #ffffff;
+        border-top-color: transparent;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
     }
 </style>

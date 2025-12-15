@@ -706,7 +706,7 @@
         position: sticky;
         top: 0;
         background: white;
-        z-index: 20;
+        z-index: 100;
         padding: 20px 24px;
         margin: 0;
         border-radius: 12px 12px 0 0;
