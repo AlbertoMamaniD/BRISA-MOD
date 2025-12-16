@@ -11,7 +11,7 @@
     import {
         administrativosService,
         type Cargo,
-    } from "$lib/services/administrativos.js"; // Reusing for cargos if needed
+    } from "$lib/services/administrativos.js"; // Reusing for cargos if needed ...
     import { getIconSvg } from "$lib/components/svg.js";
     import CreateProfesor from "./CreateProfesor.svelte";
     import EditarProfesor from "./EditarProfesor.svelte";
